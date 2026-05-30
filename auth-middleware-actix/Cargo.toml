@@ -1,0 +1,15 @@
+﻿[package]
+name = "auth-middleware-actix"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Reusable Actix middleware for auth-protected services."
+
+[dependencies]
+actix-service.workspace = true
+actix-web.workspace = true
+auth-client.workspace = true
+auth-core.workspace = true
+futures-util.workspace = true

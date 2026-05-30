@@ -1,0 +1,18 @@
+[package]
+name = "auth-repo-postgres"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "PostgreSQL identity repository for auth."
+
+[dependencies]
+async-trait.workspace = true
+auth-core.workspace = true
+chrono.workspace = true
+dotenvy.workspace = true
+tokio-postgres.workspace = true
+uuid.workspace = true
+
+deadpool-postgres.workspace = true

@@ -1,0 +1,25 @@
+[package]
+name = "auth-service"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "HTTP auth service."
+
+[dependencies]
+actix-web.workspace = true
+async-trait.workspace = true
+auth-core.workspace = true
+auth-password-argon2.workspace = true
+auth-repo-cache.workspace = true
+auth-repo-memory.workspace = true
+auth-repo-postgres.workspace = true
+auth-repo-redis.workspace = true
+auth-token-jwt.workspace = true
+dotenvy.workspace = true
+env_logger.workspace = true
+log.workspace = true
+uuid.workspace = true
+utoipa.workspace = true
+utoipa-swagger-ui.workspace = true

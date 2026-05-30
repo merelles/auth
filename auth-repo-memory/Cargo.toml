@@ -1,0 +1,17 @@
+[package]
+name = "auth-repo-memory"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "In-memory identity repository for auth."
+
+[dependencies]
+async-trait.workspace = true
+auth-core.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

@@ -1,0 +1,19 @@
+[package]
+name = "auth-client"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Client abstractions and in-process client for auth."
+
+[dependencies]
+async-trait.workspace = true
+auth-core.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+auth-password-argon2.workspace = true
+auth-repo-memory.workspace = true
+auth-token-jwt.workspace = true
+tokio.workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "auth-client-http"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "HTTP client for auth service."
+
+[dependencies]
+async-trait.workspace = true
+auth-client = { version = "0.1.0", path = "../auth-client" }
+auth-core.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+actix-web.workspace = true
+auth-password-argon2.workspace = true
+auth-repo-memory.workspace = true
+auth-token-jwt.workspace = true
+tokio.workspace = true

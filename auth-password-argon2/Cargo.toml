@@ -1,0 +1,19 @@
+[package]
+name = "auth-password-argon2"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Argon2id password service implementation for auth."
+
+[dependencies]
+async-trait.workspace = true
+argon2.workspace = true
+password-hash.workspace = true
+rand_core.workspace = true
+auth-core.workspace = true
+dotenvy.workspace = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

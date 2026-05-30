@@ -1,0 +1,13 @@
+[package]
+name = "auth-repo-cache"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Cache decorators for auth repositories."
+
+[dependencies]
+async-trait.workspace = true
+auth-core.workspace = true
+uuid.workspace = true
