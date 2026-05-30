@@ -32,6 +32,52 @@
 - `auth-repo-mongodb`: MongoDB repositories.
 - `auth-repo-cache`: cache wrappers with source-of-truth persistence.
 
+## ASCII Flow
+```text
++-----------------------+
+| Client / Service Call |
++-----------+-----------+
+            |
+            v
++-----------------------+      GET /health
+|      auth-service     |--------------------> liveness
+|      (Actix HTTP)     |
++-----------+-----------+
+            |
+            v
++-----------------------+
+|  auth-core use cases  |
+| register/login/refresh|
+| revoke/introspect     |
++-----------+-----------+
+            |
+            v
++-----------------------+      +----------------------+
+| Security Services     |----->| auth-password-argon2 |
+| (composition layer)   |      +----------------------+
+|                       |----->+----------------------+
+|                       |      |   auth-token-jwt     |
++-----------+-----------+      +----------------------+
+            |
+            v
++---------------------------------------------------------------+
+| Repository Adapters (selected by AUTH_STORAGE_DIALECT)        |
+|                                                               |
+| memory                -> in-memory repositories                |
+| postgres              -> postgres repositories                 |
+| redis                 -> redis sessions/attempts + memory ids |
+| postgres_redis_cache  -> redis cache + postgres source        |
+| mongodb               -> mongodb repositories                 |
+| mongodb_redis_cache   -> redis cache + mongodb source         |
++-------------------+-------------------+-----------------------+
+                    |                   |
+                    v                   v
+            +---------------+   +---------------+
+            |     Redis     |   | Postgres/Mongo|
+            | cache/session |   | source of truth|
+            +---------------+   +---------------+
+```
+
 ## Features
 - Identity registration (`login`, `email`, `password`).
 - Login with `access_token` and `refresh_token` issuance.
