@@ -14,6 +14,7 @@ auth-core.workspace = true
 auth-password-argon2.workspace = true
 auth-repo-cache.workspace = true
 auth-repo-memory.workspace = true
+auth-repo-mongodb.workspace = true
 auth-repo-postgres.workspace = true
 auth-repo-redis.workspace = true
 auth-token-jwt.workspace = true

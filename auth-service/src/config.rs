@@ -7,6 +7,7 @@ pub enum StorageDialect {
     Redis,
     PostgresRedisCache,
     MongoDb,
+    MongoDbRedisCache,
 }
 
 impl StorageDialect {
@@ -22,6 +23,7 @@ impl StorageDialect {
             "redis" => Self::Redis,
             "postgres_redis_cache" => Self::PostgresRedisCache,
             "mongodb" => Self::MongoDb,
+            "mongodb_redis_cache" => Self::MongoDbRedisCache,
             _ => Self::Memory,
         }
     }

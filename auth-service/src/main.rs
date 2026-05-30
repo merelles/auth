@@ -26,6 +26,10 @@ use auth_repo_cache::{CachedLoginAttemptRepository, CachedSessionRepository};
 use auth_repo_memory::{
     InMemoryIdentityRepository, InMemoryLoginAttemptRepository, InMemorySessionRepository,
 };
+use auth_repo_mongodb::{
+    MongoAuthRepositories, MongoIdentityRepository, MongoLoginAttemptRepository,
+    MongoSessionRepository,
+};
 use auth_repo_postgres::{
     PostgresAuthRepositories, PostgresIdentityRepository, PostgresLoginAttemptRepository,
     PostgresSessionRepository,
@@ -49,23 +53,30 @@ struct AppState {
 enum IdentityRepositoryAdapter {
     Memory(InMemoryIdentityRepository),
     Postgres(PostgresIdentityRepository),
+    MongoDb(MongoIdentityRepository),
 }
 
 #[derive(Clone)]
 enum SessionRepositoryAdapter {
     Memory(InMemorySessionRepository),
     Postgres(PostgresSessionRepository),
+    MongoDb(MongoSessionRepository),
     Redis(RedisSessionRepository),
     Cached(CachedSessionRepository<RedisSessionRepository, PostgresSessionRepository>),
+    CachedMongo(CachedSessionRepository<RedisSessionRepository, MongoSessionRepository>),
 }
 
 #[derive(Clone)]
 enum LoginAttemptRepositoryAdapter {
     Memory(InMemoryLoginAttemptRepository),
     Postgres(PostgresLoginAttemptRepository),
+    MongoDb(MongoLoginAttemptRepository),
     Redis(RedisLoginAttemptRepository),
     Cached(
         CachedLoginAttemptRepository<RedisLoginAttemptRepository, PostgresLoginAttemptRepository>,
+    ),
+    CachedMongo(
+        CachedLoginAttemptRepository<RedisLoginAttemptRepository, MongoLoginAttemptRepository>,
     ),
 }
 
@@ -75,6 +86,7 @@ impl IdentityRepository for IdentityRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.find_by_id(identity_id).await,
             Self::Postgres(repository) => repository.find_by_id(identity_id).await,
+            Self::MongoDb(repository) => repository.find_by_id(identity_id).await,
         }
     }
 
@@ -82,6 +94,7 @@ impl IdentityRepository for IdentityRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.find_by_login(login_name).await,
             Self::Postgres(repository) => repository.find_by_login(login_name).await,
+            Self::MongoDb(repository) => repository.find_by_login(login_name).await,
         }
     }
 
@@ -89,6 +102,7 @@ impl IdentityRepository for IdentityRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.create(identity).await,
             Self::Postgres(repository) => repository.create(identity).await,
+            Self::MongoDb(repository) => repository.create(identity).await,
         }
     }
 }
@@ -99,8 +113,10 @@ impl SessionRepository for SessionRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.save(session).await,
             Self::Postgres(repository) => repository.save(session).await,
+            Self::MongoDb(repository) => repository.save(session).await,
             Self::Redis(repository) => repository.save(session).await,
             Self::Cached(repository) => repository.save(session).await,
+            Self::CachedMongo(repository) => repository.save(session).await,
         }
     }
 
@@ -111,8 +127,10 @@ impl SessionRepository for SessionRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.find_by_session_id(session_id).await,
             Self::Postgres(repository) => repository.find_by_session_id(session_id).await,
+            Self::MongoDb(repository) => repository.find_by_session_id(session_id).await,
             Self::Redis(repository) => repository.find_by_session_id(session_id).await,
             Self::Cached(repository) => repository.find_by_session_id(session_id).await,
+            Self::CachedMongo(repository) => repository.find_by_session_id(session_id).await,
         }
     }
 
@@ -120,8 +138,10 @@ impl SessionRepository for SessionRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.revoke_by_session_id(session_id).await,
             Self::Postgres(repository) => repository.revoke_by_session_id(session_id).await,
+            Self::MongoDb(repository) => repository.revoke_by_session_id(session_id).await,
             Self::Redis(repository) => repository.revoke_by_session_id(session_id).await,
             Self::Cached(repository) => repository.revoke_by_session_id(session_id).await,
+            Self::CachedMongo(repository) => repository.revoke_by_session_id(session_id).await,
         }
     }
 
@@ -129,8 +149,10 @@ impl SessionRepository for SessionRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.revoke_by_subject_id(subject_id).await,
             Self::Postgres(repository) => repository.revoke_by_subject_id(subject_id).await,
+            Self::MongoDb(repository) => repository.revoke_by_subject_id(subject_id).await,
             Self::Redis(repository) => repository.revoke_by_subject_id(subject_id).await,
             Self::Cached(repository) => repository.revoke_by_subject_id(subject_id).await,
+            Self::CachedMongo(repository) => repository.revoke_by_subject_id(subject_id).await,
         }
     }
 }
@@ -141,8 +163,10 @@ impl LoginAttemptRepository for LoginAttemptRepositoryAdapter {
         match self {
             Self::Memory(repository) => repository.record(attempt).await,
             Self::Postgres(repository) => repository.record(attempt).await,
+            Self::MongoDb(repository) => repository.record(attempt).await,
             Self::Redis(repository) => repository.record(attempt).await,
             Self::Cached(repository) => repository.record(attempt).await,
+            Self::CachedMongo(repository) => repository.record(attempt).await,
         }
     }
 }
@@ -356,6 +380,8 @@ async fn main() -> std::io::Result<()> {
     let postgres = PostgresAuthRepositories::from_env()
         .await
         .map_err(|err| std::io::Error::other(err.to_string()))?;
+    let mongodb =
+        MongoAuthRepositories::from_env().await.map_err(|err| std::io::Error::other(err.to_string()))?;
 
     let (identities, session_repository, login_attempts) = match config.storage_dialect {
         StorageDialect::Memory => (
@@ -416,9 +442,47 @@ async fn main() -> std::io::Result<()> {
             )
         }
         StorageDialect::MongoDb => {
-            return Err(std::io::Error::other(
-                "AUTH_STORAGE_DIALECT=mongodb is not implemented yet",
-            ));
+            let mongodb = mongodb.ok_or_else(|| {
+                std::io::Error::other("AUTH_STORAGE_DIALECT=mongodb requires AUTH_MONGODB_URI")
+            })?;
+
+            mongodb
+                .ensure_indexes()
+                .await
+                .map_err(|err| std::io::Error::other(err.to_string()))?;
+
+            (
+                IdentityRepositoryAdapter::MongoDb(mongodb.identities()),
+                SessionRepositoryAdapter::MongoDb(mongodb.sessions()),
+                LoginAttemptRepositoryAdapter::MongoDb(mongodb.login_attempts()),
+            )
+        }
+        StorageDialect::MongoDbRedisCache => {
+            let mongodb = mongodb.ok_or_else(|| {
+                std::io::Error::other(
+                    "AUTH_STORAGE_DIALECT=mongodb_redis_cache requires AUTH_MONGODB_URI",
+                )
+            })?;
+            let redis = redis.ok_or_else(|| {
+                std::io::Error::other("AUTH_STORAGE_DIALECT=mongodb_redis_cache requires REDIS_URL")
+            })?;
+
+            mongodb
+                .ensure_indexes()
+                .await
+                .map_err(|err| std::io::Error::other(err.to_string()))?;
+
+            (
+                IdentityRepositoryAdapter::MongoDb(mongodb.identities()),
+                SessionRepositoryAdapter::CachedMongo(CachedSessionRepository::new(
+                    redis.sessions(),
+                    mongodb.sessions(),
+                )),
+                LoginAttemptRepositoryAdapter::CachedMongo(CachedLoginAttemptRepository::new(
+                    redis.login_attempts(),
+                    mongodb.login_attempts(),
+                )),
+            )
         }
     };
 

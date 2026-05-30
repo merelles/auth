@@ -1,0 +1,16 @@
+[package]
+name = "auth-repo-mongodb"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "MongoDB repositories for auth."
+
+[dependencies]
+async-trait.workspace = true
+auth-core.workspace = true
+dotenvy.workspace = true
+mongodb.workspace = true
+uuid.workspace = true
+chrono.workspace = true

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM rust:1.91-slim-bookworm AS builder
+FROM rust:1.91-bookworm AS builder
 WORKDIR /app
 
 RUN apt-get update \
@@ -15,6 +15,7 @@ COPY auth-middleware-actix ./auth-middleware-actix
 COPY auth-password-argon2 ./auth-password-argon2
 COPY auth-repo-cache ./auth-repo-cache
 COPY auth-repo-memory ./auth-repo-memory
+COPY auth-repo-mongodb ./auth-repo-mongodb
 COPY auth-repo-postgres ./auth-repo-postgres
 COPY auth-repo-redis ./auth-repo-redis
 COPY auth-service ./auth-service
