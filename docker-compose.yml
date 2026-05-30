@@ -1,0 +1,34 @@
+services:
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: auth-service:local
+    environment:
+      AUTH_SERVER_HOST: 0.0.0.0
+      AUTH_SERVER_PORT: 9090
+      AUTH_DATABASE_HOST: ${AUTH_DATABASE_HOST:-postgres}
+      AUTH_DATABASE_PORT: ${AUTH_DATABASE_PORT:-5432}
+      AUTH_DATABASE_NAME: ${AUTH_DATABASE_NAME:-auth}
+      AUTH_DATABASE_USER: ${AUTH_DATABASE_USER:-auth}
+      AUTH_DATABASE_PASSWORD: ${AUTH_DATABASE_PASSWORD:-change_me}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-change_me}@redis:6379
+    ports:
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres_data:
+  redis_data:
