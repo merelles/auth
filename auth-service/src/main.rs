@@ -32,7 +32,7 @@ use auth_repo_postgres::{
 };
 use auth_repo_redis::{RedisAuthRepositories, RedisLoginAttemptRepository, RedisSessionRepository};
 use auth_token_jwt::{JwtTokenConfig, JwtTokenService};
-use config::AuthServiceConfig;
+use config::{AuthServiceConfig, StorageDialect};
 use log;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -353,21 +353,58 @@ async fn main() -> std::io::Result<()> {
 
     let redis =
         RedisAuthRepositories::from_env().map_err(|err| std::io::Error::other(err.to_string()))?;
-    let (identities, session_repository, login_attempts) = if let Some(postgres) =
-        PostgresAuthRepositories::from_env()
-            .await
-            .map_err(|err| std::io::Error::other(err.to_string()))?
-    {
-        postgres
-            .ensure_schema()
-            .await
-            .map_err(|err| std::io::Error::other(err.to_string()))?;
+    let postgres = PostgresAuthRepositories::from_env()
+        .await
+        .map_err(|err| std::io::Error::other(err.to_string()))?;
 
-        let identities = IdentityRepositoryAdapter::Postgres(postgres.identities());
+    let (identities, session_repository, login_attempts) = match config.storage_dialect {
+        StorageDialect::Memory => (
+            IdentityRepositoryAdapter::Memory(InMemoryIdentityRepository::default()),
+            SessionRepositoryAdapter::Memory(InMemorySessionRepository::default()),
+            LoginAttemptRepositoryAdapter::Memory(InMemoryLoginAttemptRepository::default()),
+        ),
+        StorageDialect::Postgres => {
+            let postgres = postgres
+                .ok_or_else(|| std::io::Error::other("AUTH_STORAGE_DIALECT=postgres requires AUTH_DATABASE_*"))?;
 
-        if let Some(redis) = redis {
+            postgres
+                .ensure_schema()
+                .await
+                .map_err(|err| std::io::Error::other(err.to_string()))?;
+
             (
-                identities,
+                IdentityRepositoryAdapter::Postgres(postgres.identities()),
+                SessionRepositoryAdapter::Postgres(postgres.sessions()),
+                LoginAttemptRepositoryAdapter::Postgres(postgres.login_attempts()),
+            )
+        }
+        StorageDialect::Redis => {
+            let redis = redis
+                .ok_or_else(|| std::io::Error::other("AUTH_STORAGE_DIALECT=redis requires REDIS_URL"))?;
+
+            (
+                IdentityRepositoryAdapter::Memory(InMemoryIdentityRepository::default()),
+                SessionRepositoryAdapter::Redis(redis.sessions()),
+                LoginAttemptRepositoryAdapter::Redis(redis.login_attempts()),
+            )
+        }
+        StorageDialect::PostgresRedisCache => {
+            let postgres = postgres.ok_or_else(|| {
+                std::io::Error::other(
+                    "AUTH_STORAGE_DIALECT=postgres_redis_cache requires AUTH_DATABASE_*",
+                )
+            })?;
+            let redis = redis.ok_or_else(|| {
+                std::io::Error::other("AUTH_STORAGE_DIALECT=postgres_redis_cache requires REDIS_URL")
+            })?;
+
+            postgres
+                .ensure_schema()
+                .await
+                .map_err(|err| std::io::Error::other(err.to_string()))?;
+
+            (
+                IdentityRepositoryAdapter::Postgres(postgres.identities()),
                 SessionRepositoryAdapter::Cached(CachedSessionRepository::new(
                     redis.sessions(),
                     postgres.sessions(),
@@ -377,25 +414,12 @@ async fn main() -> std::io::Result<()> {
                     postgres.login_attempts(),
                 )),
             )
-        } else {
-            (
-                identities,
-                SessionRepositoryAdapter::Postgres(postgres.sessions()),
-                LoginAttemptRepositoryAdapter::Postgres(postgres.login_attempts()),
-            )
         }
-    } else if let Some(redis) = redis {
-        (
-            IdentityRepositoryAdapter::Memory(InMemoryIdentityRepository::default()),
-            SessionRepositoryAdapter::Redis(redis.sessions()),
-            LoginAttemptRepositoryAdapter::Redis(redis.login_attempts()),
-        )
-    } else {
-        (
-            IdentityRepositoryAdapter::Memory(InMemoryIdentityRepository::default()),
-            SessionRepositoryAdapter::Memory(InMemorySessionRepository::default()),
-            LoginAttemptRepositoryAdapter::Memory(InMemoryLoginAttemptRepository::default()),
-        )
+        StorageDialect::MongoDb => {
+            return Err(std::io::Error::other(
+                "AUTH_STORAGE_DIALECT=mongodb is not implemented yet",
+            ));
+        }
     };
 
     let state = AppState {

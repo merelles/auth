@@ -1,9 +1,37 @@
 use std::env;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StorageDialect {
+    Memory,
+    Postgres,
+    Redis,
+    PostgresRedisCache,
+    MongoDb,
+}
+
+impl StorageDialect {
+    pub fn from_env() -> Self {
+        let _ = dotenvy::dotenv();
+        match env::var("AUTH_STORAGE_DIALECT")
+            .unwrap_or_else(|_| "memory".to_string())
+            .to_lowercase()
+            .as_str()
+        {
+            "memory" => Self::Memory,
+            "postgres" => Self::Postgres,
+            "redis" => Self::Redis,
+            "postgres_redis_cache" => Self::PostgresRedisCache,
+            "mongodb" => Self::MongoDb,
+            _ => Self::Memory,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct AuthServiceConfig {
     pub host: String,
     pub port: u16,
+    pub storage_dialect: StorageDialect,
 }
 
 impl AuthServiceConfig {
@@ -16,6 +44,7 @@ impl AuthServiceConfig {
                 .ok()
                 .and_then(|value| value.parse().ok())
                 .unwrap_or(9090),
+            storage_dialect: StorageDialect::from_env(),
         }
     }
 }

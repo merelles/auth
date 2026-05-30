@@ -12,14 +12,9 @@ services:
       AUTH_DATABASE_NAME: ${AUTH_DATABASE_NAME:-auth}
       AUTH_DATABASE_USER: ${AUTH_DATABASE_USER:-auth}
       AUTH_DATABASE_PASSWORD: ${AUTH_DATABASE_PASSWORD:-change_me}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-change_me}@redis:6379
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     ports:
       - "9090:9090"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -28,7 +23,3 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-
-volumes:
-  postgres_data:
-  redis_data:
