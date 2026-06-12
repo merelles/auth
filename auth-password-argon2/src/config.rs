@@ -64,10 +64,12 @@ mod tests {
     }
 
     fn clear_auth_password_env() {
-        env::remove_var("AUTH_PASSWORD_MEMORY_KIB");
-        env::remove_var("AUTH_PASSWORD_ITERATIONS");
-        env::remove_var("AUTH_PASSWORD_PARALLELISM");
-        env::remove_var("AUTH_PASSWORD_PEPPER");
+        unsafe {
+            env::remove_var("AUTH_PASSWORD_MEMORY_KIB");
+            env::remove_var("AUTH_PASSWORD_ITERATIONS");
+            env::remove_var("AUTH_PASSWORD_PARALLELISM");
+            env::remove_var("AUTH_PASSWORD_PEPPER");
+        }
     }
 
     #[test]
@@ -88,10 +90,12 @@ mod tests {
         let _guard = env_lock().lock().unwrap();
         clear_auth_password_env();
 
-        env::set_var("AUTH_PASSWORD_MEMORY_KIB", "32768");
-        env::set_var("AUTH_PASSWORD_ITERATIONS", "4");
-        env::set_var("AUTH_PASSWORD_PARALLELISM", "2");
-        env::set_var("AUTH_PASSWORD_PEPPER", "pepper-de-teste");
+        unsafe {
+            env::set_var("AUTH_PASSWORD_MEMORY_KIB", "32768");
+            env::set_var("AUTH_PASSWORD_ITERATIONS", "4");
+            env::set_var("AUTH_PASSWORD_PARALLELISM", "2");
+            env::set_var("AUTH_PASSWORD_PEPPER", "pepper-de-teste");
+        }
 
         let config = Argon2PasswordConfig::from_env();
 

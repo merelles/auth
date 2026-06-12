@@ -362,8 +362,8 @@ async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let config = AuthServiceConfig::from_env();
 
-    let host = std::env::var("AUTH_API_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = std::env::var("AUTH_API_PORT").unwrap_or_else(|_| "9090".to_string());
+    let host = config.host.clone();
+    let port = config.port;
     let bind_address = format!("{host}:{port}");
 
     println!("AUTH Service starting...");
